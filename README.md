@@ -81,5 +81,21 @@ npm run dev
 - 列表接口统一返回 `{ items, total, page, size }`，动作接口统一返回 `{ ok, message }`。
 - 状态流转只允许在 `app/services` 里改，路由层不做业务判断。
 
+## 分层候选证据裁决（实体链接 × 消岐融合）
+
+目录对同一资产给出不同目标时，按候选的置信字段与目录回查门槛校验证据并分层：
+
+- 领域引擎：`backend/app/services/candidate_evidence/`（标准库实现，线程安全）
+  - `models.py`：目录门槛 `CatalogGate`、仅追加证据台账、候选分层与融合待办模型；
+  - `engine.py`：四层裁决（`auto_confirm / manual / supplement / rejected`）、
+    证据集合门槛校验、按资产加锁的幂等复核（同 `request_id` 只记一次有效确认）、
+    互斥候选全资产唯一正式链接、随分层数据更新的消岐融合待办；
+  - `scenario.py`：D07 冲突场景（目录 A 0.96 分缺原文 vs 目录 B 0.81 分带序列号记录）。
+- 专用路由前缀 `/api/candidate-evidence`（证据回查、候选送审/补证/确认、待办领取/融合），
+  业务判断全部在引擎内，路由层不做裁决。
+- 演示与测试（`-I` 隔离模式，路径由脚本显式注入）：
+  - `python3 -I scripts/d07_demo.py`：D07 两笔冲突候选的并发复核、补证前后可融合数据对比；
+  - `python3 -I scripts/run_tests.py`：分层、幂等、互斥、补证、待办更新共 9 个用例。
+
 领域：数据工程
 子方向：数据分析与数据应用
